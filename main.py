@@ -6,10 +6,11 @@ import threading
 import time
 import telebot
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from flask import Flask
 
-# Bot Configuration (Updated with your credentials)
+# Bot Configuration
 TOKEN = "8988853898:AAGoQ6fkETdCp4jOr-i58l3j-QsVzR7ZIxk"
-ADMIN_ID = 8631720591  # Updated Admin ID
+ADMIN_ID = 8631720591
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -17,7 +18,7 @@ bot = telebot.TeleBot(TOKEN)
 activity_logs = []
 seen_msg_ids = set()
 
-# Database setup for the new bot
+# Database setup for the bot
 DB_NAME = "drama_filters.db"
 
 
@@ -80,7 +81,6 @@ def index_files(n):
   if not fid:
     return
 
-  # 1. First priority is Caption, fallback to file name
   raw_name = ""
   if n.caption:
     raw_name = n.caption
@@ -89,7 +89,6 @@ def index_files(n):
   else:
     raw_name = f"file_{n.message_id}"
 
-  # 2. Remove branding and unnecessary texts
   branding_texts = [
       "UOSG - The Unlimited Universe",
       "UOSG",
@@ -100,11 +99,9 @@ def index_files(n):
   for brand in branding_texts:
     raw_name = raw_name.replace(brand, "")
 
-  # 3. Clean user tags, hashtags, hyphens, dots, commas, symbols
-  raw_name = re.sub(r"@\w+", "", raw_name)  # Remove usernames
-  raw_name = re.sub(r"#\w+", "", raw_name)  # Remove hashtags
+  raw_name = re.sub(r"@\w+", "", raw_name)
+  raw_name = re.sub(r"#\w+", "", raw_name)
 
-  # Replace special symbols (dots, commas, hyphens, brackets, underscores) with spaces
   clean_name = raw_name.lower()
   clean_name = re.sub(r"[^a-z0-9\s]", " ", clean_name)
   clean_name = " ".join(clean_name.split())
@@ -123,7 +120,6 @@ def index_files(n):
     conn.close()
     print(f"✅ [INDEXED] Successfully Saved -> {clean_name}", flush=True)
 
-    # Send instant update to Admin's personal chat about the saved file
     try:
       markup = InlineKeyboardMarkup()
       markup.add(InlineKeyboardButton("🗑️ Clear Update", callback_data="clear_update"))
@@ -164,36 +160,10 @@ def group_handler(m):
     return
 
   hardcoded_restricted = [
-      "download",
-      "downloads",
-      "episode",
-      "episodes",
-      "ep",
-      "season",
-      "seasons",
-      "tamil",
-      "telugu",
-      "hindi",
-      "malayalam",
-      "kannada",
-      "english",
-      "dubbed",
-      "sub",
-      "subs",
-      "subtitles",
-      "movie",
-      "movies",
-      "series",
-      "show",
-      "shows",
-      "link",
-      "links",
-      "file",
-      "files",
-      "watch",
-      "online",
-      "telegram",
-      "tg",
+      "download", "downloads", "episode", "episodes", "ep", "season", "seasons",
+      "tamil", "telugu", "hindi", "malayalam", "kannada", "english", "dubbed",
+      "sub", "subs", "subtitles", "movie", "movies", "series", "show", "shows",
+      "link", "links", "file", "files", "watch", "online", "telegram", "tg",
   ]
 
   if any(r_word in query_words for r_word in hardcoded_restricted):
@@ -203,7 +173,6 @@ def group_handler(m):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    # Custom Filters Check
     cursor.execute("SELECT keyword, response FROM filters")
     all_filters = cursor.fetchall()
 
@@ -222,7 +191,6 @@ def group_handler(m):
       conn.close()
       return
 
-    # Restricted Words Check from DB
     cursor.execute("SELECT word FROM restricted_words")
     restricted_rows = cursor.fetchall()
     restricted_words_list = [row[0] for row in restricted_rows]
@@ -231,7 +199,6 @@ def group_handler(m):
       conn.close()
       return
 
-    # Files Search in DB
     cursor.execute("SELECT name, id, chat, msg FROM files")
     rows = cursor.fetchall()
     conn.close()
@@ -294,7 +261,6 @@ def group_handler(m):
       except Exception as e:
         print(f"No match reply error: {e}")
 
-    # Activity Logging
     now_time = datetime.datetime.now()
     user_obj = m.from_user
     activity_logs.append({
@@ -310,7 +276,6 @@ def group_handler(m):
         "files_list": sent_file_names,
     })
 
-    # Auto Delete Sent Files after delay (300 seconds)
     def handle_auto_delete_and_warning(
         bot_instance, chat_id, sent_message_ids, delay_seconds=300
     ):
@@ -581,10 +546,28 @@ def get_file_id(message):
     print(f"Error getting file_id: {e}")
 
 
+# --- Flask Mini Web Server to satisfy Render Port requirement ---
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is active and running smoothly!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+
 if __name__ == "__main__":
   print("=" * 50)
   print(" 🚀 TELEGRAM FILE & FILTER BOT IS ONLINE 🌸 ")
   print("=" * 50)
+  
+  # Start Flask web server in a separate background thread
+  flask_thread = threading.Thread(target=run_flask)
+  flask_thread.daemon = True
+  flask_thread.start()
+
   while True:
     try:
       bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
