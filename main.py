@@ -3,6 +3,7 @@ import json
 from flask import Flask, request
 from telegram import Update
 from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
+import urllib.parse
 
 TELEGRAM_BOT_TOKEN = "8988853898:AAGoQ6fkETdCp4jOr-i58l3j-QsVzR7ZIxk"
 RENDER_URL = "https://uosg-kg1t.onrender.com"
@@ -52,12 +53,10 @@ def webhook():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
-        "🌟 **Welcome! Bot is active.**\n\n"
-        "🛡️ **Security:** Admin-Only Filter Lock Active\n\n"
-        "📌 **Usage:**\n"
-        "• `/filter keyword - reply` (Admins only)\n"
-        "• `/s [drama name]` - Get Google AI style 3-point details instantly\n"
-        "• `/ping` - Check bot status"
+        "💖 **Hello there! I'm Zara, your UOSG group assistant.**\n\n"
+        "🛡️ **Security:** Admin-Only Filter Lock & 200+ Strict Restricted Words Filter Active\n\n"
+        "📌 **Info:**\n"
+        "• Send proper drama names to get automatic Google search links! Casual chat or requests will be blocked."
     )
     await update.message.reply_text(welcome_text)
 
@@ -76,7 +75,7 @@ async def filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             member = await chat.get_member(user_id)
             if member.status not in ["creator", "administrator"]:
-                await update.message.reply_text("⚠️ Sorry! Only group administrators can use the `/filter` command (Admin Lock Active).")
+                await update.message.reply_text("⚠️ Sorry! Only group administrators can use the `/filter` command.")
                 return
         except Exception as e:
             print(f"Admin Check Error: {e}")
@@ -109,64 +108,78 @@ async def filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(f"🔒 **[Admin Lock]** Filter saved successfully!\n📌 **Keyword:** `{keyword}` ➔ `{reply_msg}`")
 
-async def handle_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def auto_search_and_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
     
-    text = update.message.text.lower()
+    text = update.message.text.strip()
+    
+    if text.startswith('/'):
+        return
+
+    text_lower = text.lower()
     chat_id = str(update.effective_chat.id)
     
     if chat_id in CHAT_FILTERS:
         for keyword, reply in CHAT_FILTERS[chat_id].items():
-            if keyword in text:
+            if keyword in text_lower:
                 await update.message.reply_text(reply)
-                break
+                return
 
-async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("⚠️ Please specify the drama name. Example: `/s Twinkling Watermelon`", reply_to_message_id=update.message.message_id)
-        return
+    # 🚫 200+ Comprehensive Restricted Words & Casual Chat Triggers to prevent unwanted Google search triggers
+    restricted_words = [
+        "bro", "send", "send panunga", "send me", "link", "links", "episode", "episodes", 
+        "dubbed", "subbed", "tamil", "telugu", "hindi", "english", "download", "file", 
+        "files", "movie", "movies", "series", "season", "seasons", "part", "parts", 
+        "video", "videos", "watch", "online", "telegram", "channel", "group", "admin", 
+        "please", "pls", "plz", "give", "share", "get", "got", "find", "search", 
+        "telegram link", "drive link", "mega link", "zip", "rar", "apk", "mod", 
+        "full movie", "full series", "all episodes", "hd", "1080p", "720p", "480p", 
+        "bluray", "webrip", "hdtv", "camrip", "torrent", "magnet", "bot", "bots", 
+        "hi bro", "hey bro", "bro send", "send link", "need link", "want link", 
+        "any link", "fast", "slow", "server", "working", "not working", "error", 
+        "hello bro", "dear bro", "bro give", "give me", "can you send", "i want", 
+        "i need", "anybody", "anyone", "here", "there", "when", "where", "how", 
+        "why", "who", "what", "site", "website", "app", "application", "play", 
+        "stop", "start", "restart", "update", "new", "old", "latest", "upcoming",
+        "hi", "hello", "hey", "gm", "gn", "good morning", "good night", "how are you", 
+        "fine", "thanks", "thank you", "ok", "okay", "bye", "see you", "sup", 
+        "what's up", "bro", "sis", "friend", "friends", "admin", "owner", "founder", 
+        "help", "support", "issue", "problem", "bug", "chat", "talk", "speak", 
+        "message", "text", "voice", "audio", "photo", "image", "sticker", "gif", 
+        "emoji", "laugh", "lol", "haha", "omg", "wow", "nice", "good", "bad", 
+        "terrible", "awesome", "cool", "super", "great", "best", "worst", "right", 
+        "wrong", "true", "false", "yes", "no", "maybe", "sure", "of course", 
+        "really", "actually", "seriously", "just", "only", "some", "any", "all", 
+        "none", "more", "less", "much", "many", "few", "other", "another", "same", 
+        "different", "such", "own", "each", "every", "both", "either", "neither", 
+        "own", "local", "global", "world", "universe", "uosg", "drama", "kdrama", 
+        "cdrama", "jdrama", "anime", "toon", "cartoon", "episode 1", "episode 2", 
+        "part 1", "part 2", "season 1", "season 2", "volume", "chapter", "iss", 
+        "issue", "request", "demands", "ask", "asking", "asked", "reply", "replied", 
+        "comment", "comments", "post", "posts", "upload", "uploaded", "forward", 
+        "forwarded", "pin", "pinned", "unpin", "delete", "deleted", "remove", 
+        "removed", "ban", "banned", "kick", "kicked", "mute", "muted", "unmute"
+    ]
 
-    query_raw = " ".join(context.args).strip()
-    query_lower = query_raw.lower()
-    
-    drama_name = query_raw.title()
-    release_year = "2023"
-    
-    if "twinkling watermelon" in query_lower:
-        release_year = "2023"
-    elif "lovely runner" in query_lower:
-        release_year = "2024"
-    elif "dream to you" in query_lower:
-        release_year = "2023"
-    elif "when i fly towards you" in query_lower:
-        release_year = "2023"
-    elif "put your head on my shoulder" in query_lower:
-        release_year = "2019"
-    elif "my girlfriend is an alien" in query_lower:
-        release_year = "2019"
-    elif "dr. romantic" in query_lower:
-        release_year = "2016"
-    elif "love o2o" in query_lower:
-        release_year = "2016"
-    elif "true beauty" in query_lower:
-        release_year = "2020"
-    elif "i'm not a robot" in query_lower:
-        release_year = "2017"
+    for word in restricted_words:
+        # வார்த்தை அல்லது வாக்கியத்தில் தடை செய்யப்பட்ட சொற்கள் இருந்தால் கூகுள் தேடலைத் தவிர்க்கவும்
+        if word in text_lower:
+            return
 
-    if "chinese" in query_lower or "china" in query_lower or "mandarin" in query_lower or "when i fly" in query_lower or "love o2o" in query_lower:
-        languages = "Mandarin (Original), English / Tamil (Subbed/Dubbed)"
-    else:
-        languages = "Korean (Original), English / Tamil (Subbed/Dubbed)"
+    # உண்மையான டிராமா பெயர்கள் மட்டும் வந்தாலl மட்டுமே கீழே உள்ள கூகுள் தேடல் மற்றும் Zara பாட்டின் பதில் வேலை செய்யும்
+    query_raw = text
+    encoded_query = urllib.parse.quote(query_raw)
+    google_search_url = f"https://www.google.com/search?q={encoded_query}"
 
-    ai_response = (
-        f"🤖 **Google AI Summary:**\n\n"
-        f"1️⃣ **Drama Name:** {drama_name}\n"
-        f"2️⃣ **Release Year:** {release_year}\n"
-        f"3️⃣ **Languages:** {languages}"
+    zara_response = (
+        f"💖 **Heyy!** All official details and available languages for `{query_raw.title()}` can be checked on Google!\n\n"
+        f"🔍 Please click the **Go to Google Search** link below to check all the details:\n\n"
+        f"👉 [Go to Google Search 🌐]({google_search_url})\n\n"
+        f"✨ Our **UOSG Group CEO and Founders** will review this, and our admins will send you the drama files very soon! Please wait patiently until then! 🥰"
     )
     
-    await update.message.reply_text(ai_response, reply_to_message_id=update.message.message_id)
+    await update.message.reply_text(zara_response, parse_mode="Markdown", reply_to_message_id=update.message.message_id)
 
 def setup_webhook():
     import requests
@@ -176,11 +189,9 @@ def setup_webhook():
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ping", ping_command))
 telegram_app.add_handler(CommandHandler("status", ping_command))
-telegram_app.add_handler(CommandHandler("s", search_drama_command))
-telegram_app.add_handler(CommandHandler("search", search_drama_command))
 telegram_app.add_handler(CommandHandler("filter", filter_command))
 
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_filters))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_search_and_reply))
 
 if __name__ == '__main__':
     setup_webhook()
