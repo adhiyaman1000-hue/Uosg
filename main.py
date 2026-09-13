@@ -37,7 +37,7 @@ CHAT_FILTERS = load_filters()
 
 @app.route('/')
 def home():
-    return "𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 Bot with Re-checked Tokens & Backup is active!"
+    return "𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 Bot is running perfectly!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -53,64 +53,27 @@ def webhook():
     return "OK"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    search_status = "❌ துண்டிக்கப்பட்டுள்ளது"
-    try:
-        test_res = requests.get("https://www.googleapis.com/customsearch/v1", params={
-            'key': GOOGLE_API_KEY,
-            'cx': SEARCH_ENGINE_ID,
-            'q': 'test'
-        }, timeout=5)
-        if test_res.status_code == 200:
-            search_status = "✅ Connected in Google Search"
-        else:
-            search_status = f"⚠️ Error Code: {test_res.status_code}"
-    except Exception:
-        search_status = "❌ இணைப்பு கிடைக்கவில்லை"
-
-    keyboard = [
-        [InlineKeyboardButton("🔍 டிராமா தேட (/s)", callback_data="help_search")],
-        [InlineKeyboardButton("📶 பாட் ஸ்டேட்டஸ் பரிசோதிக்க (/ping)", callback_data="check_status")],
-        [InlineKeyboardButton("💎 𝓚𝓒 𝔁 𝒟𝓇𝒶𝓂𝒶 𝒲ℴ𝓇𝓁𝒹", url="https://t.me/KC_X_DRAMA_WORLD")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     welcome_text = (
-        f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 பாட் இயக்கத்தில் உள்ளது.**\n\n"
-        f"🟢 **பாட் நிலை:** ONLINE (Re-checked & Secured)\n"
-        f"🌐 **Google Search API:** {search_status}\n\n"
-        f"📌 **இந்த பாட் என்னென்ன செய்யும்?**\n"
-        f"• `/s [டிராமா பெயர்]` - கூகுள் சர்ச் மூலம் டிராமா விவரங்கள் தரும்.\n"
-        f"• `/addfilter [keyword] [reply]` - ஆட்டோமேட்டிக் ஃபில்டர் செட் செய்யும்.\n"
-        f"• `/ping` - பாட் இணைப்பைச் சோதிக்கும்."
+        f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝒆𝐫𝐬𝐞 𝐨𝐟 𝐒𝒆𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 பாட் இயக்கத்தில் உள்ளது.**\n\n"
+        f"🟢 **பாட் நிலை:** ONLINE & SECURED\n\n"
+        f"📌 **பயன்படுத்தும் முறை:**\n"
+        f"• `/filter [வார்த்தை] [பதில்]` - புதிய ஃபில்டர் சேர்க்க.\n"
+        f"• `/s [டிராமா பெயர்]` - டிராமா விவரங்கள் தேட.\n"
+        f"• `/ping` - பாட் நிலையைச் சோதிக்க."
     )
-    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+    await update.message.reply_text(welcome_text)
 
 async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    search_status = "❌ துண்டிக்கப்பட்டுள்ளது"
-    try:
-        test_res = requests.get("https://www.googleapis.com/customsearch/v1", params={
-            'key': GOOGLE_API_KEY,
-            'cx': SEARCH_ENGINE_ID,
-            'q': 'test'
-        }, timeout=5)
-        if test_res.status_code == 200:
-            search_status = "✅ Connected in Google Search"
-        else:
-            search_status = f"⚠️ Error Code: {test_res.status_code}"
-    except Exception:
-        search_status = "❌ இணைப்பு கிடைக்கவில்லை"
-
     ping_text = (
-        f"🟢 **பாட் ஸ்டேட்டஸ்: ONLINE**\n\n"
-        f"🌐 **Google Search API Status:** {search_status}\n"
-        f"📂 **Auto-Filter Backup:** Active & Secured\n"
+        f"🟢 **பாட் ஸ்டேட்டஸ்: ONLINE (Perfect)**\n"
+        f"📂 **Auto-Filter Backup:** Active & Safe\n"
         f"👑 **Group:** 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝒆𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩"
     )
     await update.message.reply_text(ping_text)
 
-async def add_filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
-        await update.message.reply_text("⚠️ பயன்பாட்டு முறை தவறு நண்பா!\nஎடுத்துக்காட்டு: `/addfilter hello வணக்கம் நண்பா`")
+        await update.message.reply_text("⚠️ பயன்பாட்டு முறை தவறு நண்பா!\nஎடுத்துக்காட்டு: `/filter hi வணக்கம் நண்பா`")
         return
     
     keyword = context.args[0].lower()
@@ -123,7 +86,7 @@ async def add_filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     CHAT_FILTERS[chat_id][keyword] = reply_msg
     save_filters(CHAT_FILTERS)
     
-    await update.message.reply_text(f"✅ ஃபில்டர் வெற்றிகரமாக சேமிக்கப்பட்டது!\nkeyword: `{keyword}`")
+    await update.message.reply_text(f"✅ ஃபில்டர் வெற்றிகரமாக சேமிக்கப்பட்டது: `{keyword}`")
 
 async def handle_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -140,11 +103,11 @@ async def handle_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ நண்பா, டிராமாவின் பெயரையும் சேர்த்து அனுப்பவும்.\nஎடுத்துக்காட்டு: `/s Twinkling Watermelon`")
+        await update.message.reply_text("⚠️ நண்பா, டிராமாவின் பெயரைக் குறிப்பிடவும். எ.கா: `/s Twinkling Watermelon`")
         return
 
     query = " ".join(context.args)
-    await update.message.reply_text(f"🔍 '{query}' டிராமாவின் முழு விவரங்களையும் கூகுள் சர்ச் மூலம் தேடிக்கொண்டிருக்கிறேன் நண்பா...")
+    await update.message.reply_text(f"🔍 '{query}' தேடிக்கொண்டிருக்கிறேன் நண்பா...")
 
     search_url = "https://www.googleapis.com/customsearch/v1"
     params = {
@@ -163,29 +126,20 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
             snippet = top_result.get('snippet', '')
             link = top_result.get('link', '')
             
-            keyboard = [
-                [InlineKeyboardButton("🔗 முழு விவரங்களைப் பார்க்க", url=link)],
-                [InlineKeyboardButton("👑 CEO Bot Approval", callback_data=f"approve_{query[:15]}")]
-            ]
+            keyboard = [[InlineKeyboardButton("🔗 முழு விவரங்களைப் பார்க்க", url=link)]]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             reply_text = (
-                f"✅ **Connected in Google Search: SUCCESS**\n\n"
-                f"🎬 **டிராமா தகவல் அறிக்கை**\n\n"
-                f"📌 **தலைப்பு & ஆண்டு:** {title}\n\n"
-                f"📖 **கதைக்களம் & விவரங்கள் (Plot):**\n{snippet}\n\n"
-                f"🌐 **மொழி நிலை:** தமிழ் டப்பிங் / பிற விவரங்கள் இணையத்தில் தேடப்பட்டுள்ளது."
+                f"🎬 **டிராமா தகவல்**\n\n"
+                f"📌 **தலைப்பு:** {title}\n\n"
+                f"📖 **கதைக்களம்:**\n{snippet}"
             )
             await update.message.reply_text(reply_text, reply_markup=reply_markup)
         else:
-            reply_text = (
-                f"⚠️ **Google Search Connected, ஆனால் தகவல் இல்லை**\n\n"
-                f"மன்னிக்கவும் நண்பா, '{query}' டிராமா பற்றிய தகவல்கள் வெப்பில் கிடைக்கவில்லை."
-            )
-            await update.message.reply_text(reply_text)
+            await update.message.reply_text(f"⚠️ '{query}' டிராமா பற்றிய தகவல்கள் கிடைக்கவில்லை.")
             
     except Exception as e:
-        await update.message.reply_text("⚠️ கூகுள் சர்ச்சுடன் இணைப்பதில் சிறு தடை ஏற்பட்டுள்ளது நண்பா. சற்று கழித்து முயற்சிக்கவும்.")
+        await update.message.reply_text("⚠️ இணைப்பில் சிறு தடை ஏற்பட்டுள்ளது நண்பா.")
 
 def setup_webhook():
     webhook_url = f"{RENDER_URL}/{TELEGRAM_BOT_TOKEN}"
@@ -196,7 +150,7 @@ telegram_app.add_handler(CommandHandler("ping", ping_command))
 telegram_app.add_handler(CommandHandler("status", ping_command))
 telegram_app.add_handler(CommandHandler("s", search_drama_command))
 telegram_app.add_handler(CommandHandler("search", search_drama_command))
-telegram_app.add_handler(CommandHandler("addfilter", add_filter_command))
+telegram_app.add_handler(CommandHandler("filter", filter_command))
 
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_filters))
 
