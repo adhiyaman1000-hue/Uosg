@@ -4,12 +4,12 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, ContextTypes, CommandHandler
 
-# Configuration
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Configuration - அனைத்து டோக்கன்களும் நேரடியாக இணைக்கப்பட்டுள்ளன
+TELEGRAM_BOT_TOKEN = "8988853898:AAGoQ6fkETdCp4jOr-i58l3j-QsVzR7ZIxk"
 GOOGLE_API_KEY = "AIzaSyBXWXOvvUxLiEY7_gEXn0z6SrDvrzTGEm8"
 SEARCH_ENGINE_ID = "5788d738584a240fa"
 
-# Render-ன் உன்னுடைய தற்போதைய URL (இதை உன்னுடைய அட்ரஸுக்கு மாற்றியுள்ளேன்)
+# Render-ன் உன்னுடைய தற்போதைய URL
 RENDER_URL = "https://uosg-kg1t.onrender.com"
 
 app = Flask(__name__)
@@ -23,11 +23,9 @@ def home():
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
-    """ Telegram லிருந்து வரும் மெசேஜ்களைப் பெற்று பாட்டிற்கு அனுப்புவது """
     json_data = request.get_json(force=True)
     update = Update.de_json(json_data, telegram_app.bot)
     
-    # Background-ல் இயங்கச் செய்வது
     async def process_update():
         await telegram_app.initialize()
         await telegram_app.process_update(update)
@@ -140,11 +138,9 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text("⚠️ கூகுள் சர்ச்சுடன் இணைப்பதில் சிறு தடை ஏற்பட்டுள்ளது நண்பா. சற்று கழித்து முயற்சிக்கவும்.")
 
 def setup_webhook():
-    """ டெலிகிராம் செர்வருடன் ரெண்டர் யூஆர்எல்-ஐ இணைப்பது """
     webhook_url = f"{RENDER_URL}/{TELEGRAM_BOT_TOKEN}"
     requests.get(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
 
-# Handlers பதிவு செய்தல்
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("ping", ping_command))
 telegram_app.add_handler(CommandHandler("status", ping_command))
@@ -152,9 +148,6 @@ telegram_app.add_handler(CommandHandler("s", search_drama_command))
 telegram_app.add_handler(CommandHandler("search", search_drama_command))
 
 if __name__ == '__main__':
-    # Webhook-ஐ செட்டப் செய்தல்
     setup_webhook()
-    
-    # Flask சர்வரை ரெண்டருக்காக ஸ்டார்ட் செய்வது
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
