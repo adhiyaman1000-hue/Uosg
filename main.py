@@ -40,7 +40,6 @@ def webhook():
     json_data = request.get_json(force=True)
     update = Update.de_json(json_data, telegram_app.bot)
     
-    # ஒரே முயற்சியில் உடныடன் வேலை செய்ய ஏதுவாக ஆசிங்கிரனஸ் லூப் சீரமைக்கப்பட்டுள்ளது
     import asyncio
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -119,7 +118,8 @@ async def handle_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = str(update.effective_chat.id)
     
     if chat_id in CHAT_FILTERS:
-        for keyword, reply in CHAT_FILTER_LIST := list(CHAT_FILTERS[chat_id].items()):
+        # எரர் வராதபடி பாதுகாப்பான லூப் அமைப்பு (Syntax Error Fixed)
+        for keyword, reply in CHAT_FILTERS[chat_id].items():
             if keyword in text:
                 await update.message.reply_text(reply)
                 break
@@ -138,11 +138,10 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
         
         if search_results:
             drama_name = search_results[0]['title']
-            snippet = search_results.get([0], {}).get('snippet', '') if len(search_results) > 0 else ""
-            # Clean HTML tags safely
+            snippet = search_results[0].get('snippet', '') if len(search_results) > 0 else ""
+            
             import re
             clean_snippet = re.sub(r'<.*?>', '', snippet)
-            
             years_found = re.findall(r'\b(19\d{2}|20\d{2})\b', clean_snippet)
             release_year = years_found[0] if years_found else "Recent Release"
             
