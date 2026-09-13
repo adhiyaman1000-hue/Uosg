@@ -1,23 +1,42 @@
 import os
-import threading
 import requests
-from flask import Flask
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
+from telegram.ext import Application, ContextTypes, CommandHandler
 
 # Configuration
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 GOOGLE_API_KEY = "AIzaSyBXWXOvvUxLiEY7_gEXn0z6SrDvrzTGEm8"
 SEARCH_ENGINE_ID = "5788d738584a240fa"
 
+# Render-ன் உன்னுடைய தற்போதைய URL (இதை உன்னுடைய அட்ரஸுக்கு மாற்றியுள்ளேன்)
+RENDER_URL = "https://uosg-kg1t.onrender.com"
+
 app = Flask(__name__)
+
+# Telegram Application Setup
+telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
 @app.route('/')
 def home():
-    return "𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 Bot is active and running!"
+    return "𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 Bot is active and running via Webhook!"
+
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+def webhook():
+    """ Telegram லிருந்து வரும் மெசேஜ்களைப் பெற்று பாட்டிற்கு அனுப்புவது """
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, telegram_app.bot)
+    
+    # Background-ல் இயங்கச் செய்வது
+    async def process_update():
+        await telegram_app.initialize()
+        await telegram_app.process_update(update)
+
+    import asyncio
+    asyncio.run(process_update())
+    return "OK"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Check Google Custom Search API connectivity live on /start
     search_status = "❌ துண்டிக்கப்பட்டுள்ளது"
     try:
         test_res = requests.get("https://www.googleapis.com/customsearch/v1", params={
@@ -26,9 +45,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'q': 'test'
         }, timeout=5)
         if test_res.status_code == 200:
-            search_status = "✅ Connected in Google Search (வெற்றிகரமாக இணைக்கப்பட்டுள்ளது)"
+            search_status = "✅ Connected in Google Search"
         else:
-            search_status = f"⚠️ சிக்கல் உள்ளது (Error Code: {test_res.status_code})"
+            search_status = f"⚠️ Error Code: {test_res.status_code}"
     except Exception:
         search_status = "❌ இணைப்பு கிடைக்கவில்லை"
 
@@ -41,12 +60,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     welcome_text = (
         f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 பாட் இயக்கத்தில் உள்ளது.**\n\n"
-        f"🟢 **பாட் நிலை:** ONLINE (செயலில் உள்ளது)\n"
+        f"🟢 **பாட் நிலை:** ONLINE (Webhook மூலம்)\n"
         f"🌐 **Google Search API:** {search_status}\n\n"
         f"📌 **இந்த பாட் என்னென்ன செய்யும்?**\n"
-        f"• `/s [டிராமா பெயர்]` என அனுப்பினால் கூகுள் சர்ச் மூலம் டிராமாவின் கதைக்களம் (Plot), வெளியான ஆண்டு மற்றும் மொழி விவரங்களை (Tamil Dubbed Available / Not Available) ஆட்டோமேட்டிக்காகக் கொண்டு এসে இன்லைன் பட்டன்களுடன் தரும்.\n"
-        f"• `/ping` என அனுப்பினால் பாட் மற்றும் கூகுள் சர்ச் லைவ் கனெக்ஷனைச் சோதித்துச் சொல்லும்.\n\n"
-        f"உன்னுடைய சேவையைத் தொடங்க கீழே உள்ள கமெண்டைப் பயன்படுத்தவும் நண்பா!"
+        f"• `/s [டிராமா பெயர்]` என அனுப்பினால் கூகுள் சர்ச் மூலம் டிராமாவின் கதைக்களம் (Plot), வெளியான ஆண்டு மற்றும் மொழி விவரங்களை ஆட்டோமேட்டிக்காகத் தரும்.\n"
+        f"• `/ping` என அனுப்பினால் பாட் மற்றும் கூகுள் சர்ச் கனெக்ஷனைச் சோதித்துச் சொல்லும்."
     )
     await update.message.reply_text(welcome_text, reply_markup=reply_markup)
 
@@ -121,24 +139,22 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
     except Exception as e:
         await update.message.reply_text("⚠️ கூகுள் சர்ச்சுடன் இணைப்பதில் சிறு தடை ஏற்பட்டுள்ளது நண்பா. சற்று கழித்து முயற்சிக்கவும்.")
 
-def run_telegram_bot():
-    if not TELEGRAM_BOT_TOKEN:
-        print("Telegram Token missing!")
-        return
+def setup_webhook():
+    """ டெலிகிராம் செர்வருடன் ரெண்டர் யூஆர்எல்-ஐ இணைப்பது """
+    webhook_url = f"{RENDER_URL}/{TELEGRAM_BOT_TOKEN}"
+    requests.get(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
 
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("ping", ping_command))
-    application.add_handler(CommandHandler("status", ping_command))
-    application.add_handler(CommandHandler("s", search_drama_command))
-    application.add_handler(CommandHandler("search", search_drama_command))
-
-    application.run_polling()
+# Handlers பதிவு செய்தல்
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("ping", ping_command))
+telegram_app.add_handler(CommandHandler("status", ping_command))
+telegram_app.add_handler(CommandHandler("s", search_drama_command))
+telegram_app.add_handler(CommandHandler("search", search_drama_command))
 
 if __name__ == '__main__':
-    bot_thread = threading.Thread(target=run_telegram_bot)
-    bot_thread.start()
-
+    # Webhook-ஐ செட்டப் செய்தல்
+    setup_webhook()
+    
+    # Flask சர்வரை ரெண்டருக்காக ஸ்டார்ட் செய்வது
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
