@@ -142,14 +142,17 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
             import re
             clean_snippet = re.sub(r'<.*?>', '', snippet)
             years_found = re.findall(r'\b(19\d{2}|20\d{2})\b', clean_snippet)
-            release_year = years_found[0] if years_found else "2023"
             
-            languages = "English, Tamil (Dubbed/Subbed), Original Audio"
+            # எந்தவிதப் பொய் வருடமும் தராமல், விக்கிபீடியாவில் ஆண்டு இருந்தால் மட்டும் எடுக்கும்படி திருத்தம்
+            release_year = years_found[0] if years_found else "Not Specified in Live Record"
+            
             lower_q = query_raw.lower()
             if "chinese" in lower_q or "china" in lower_q or "mandarin" in lower_q:
-                languages = "English, Tamil, Mandarin (Original)"
+                languages = "Mandarin (Original), English / Tamil (Subbed/Dubbed)"
             elif "korean" in lower_q or "korea" in lower_q:
-                languages = "English, Tamil, Korean (Original)"
+                languages = "Korean (Original), English / Tamil (Subbed/Dubbed)"
+            else:
+                languages = "Original Audio, English / Tamil (Subbed/Dubbed)"
 
             response_text = (
                 f"🎬 **Drama Name:** {drama_name}\n"
@@ -158,20 +161,10 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
             )
             await update.message.reply_text(response_text, reply_to_message_id=update.message.message_id)
         else:
-            fallback_text = (
-                f"🎬 **Drama Name:** {query_raw.title()}\n"
-                f"📅 **Release Year:** 2023\n"
-                f"🌐 **Languages:** English, Tamil, Original Audio"
-            )
-            await update.message.reply_text(fallback_text, reply_to_message_id=update.message.message_id)
+            await update.message.reply_text(f"⚠️ No live database record found for '{query_raw}'. Please check the name spelling.", reply_to_message_id=update.message.message_id)
             
     except Exception as e:
-        error_text = (
-            f"🎬 **Drama Name:** {query_raw.title()}\n"
-            f"📅 **Release Year:** 2023\n"
-            f"🌐 **Languages:** English, Tamil, Original Audio"
-        )
-        await update.message.reply_text(error_text, reply_to_message_id=update.message.message_id)
+        await update.message.reply_text(f"⚠️ Error fetching live data for '{query_raw}'. Please try again.", reply_to_message_id=update.message.message_id)
 
 def setup_webhook():
     webhook_url = f"{RENDER_URL}/{TELEGRAM_BOT_TOKEN}"
