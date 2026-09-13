@@ -1,7 +1,7 @@
 import os
 import json
 from flask import Flask, request
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
 import urllib.parse
 
@@ -54,9 +54,9 @@ def webhook():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
         "💖 **Hello there! I'm Zara, your UOSG group assistant.**\n\n"
-        "🛡️ **Security:** Admin-Only Filter Lock & 200+ Strict Restricted Words Filter Active\n\n"
+        "🛡️ **Security:** 300+ Restricted Words Filter & Inline Button Search Active\n\n"
         "📌 **Info:**\n"
-        "• Send proper drama names to get automatic Google search links! Casual chat or requests will be blocked."
+        "• Send your drama message, and I will filter out casual words to provide a cute Google Search button!"
     )
     await update.message.reply_text(welcome_text)
 
@@ -117,8 +117,8 @@ async def auto_search_and_reply(update: Update, context: ContextTypes.DEFAULT_TY
     if text.startswith('/'):
         return
 
-    text_lower = text.lower()
     chat_id = str(update.effective_chat.id)
+    text_lower = text.lower()
     
     if chat_id in CHAT_FILTERS:
         for keyword, reply in CHAT_FILTERS[chat_id].items():
@@ -126,7 +126,7 @@ async def auto_search_and_reply(update: Update, context: ContextTypes.DEFAULT_TY
                 await update.message.reply_text(reply)
                 return
 
-    # 🚫 200+ Comprehensive Restricted Words & Casual Chat Triggers to prevent unwanted Google search triggers
+    # 🚫 300+ Comprehensive Restricted / Ignored Words List
     restricted_words = [
         "bro", "send", "send panunga", "send me", "link", "links", "episode", "episodes", 
         "dubbed", "subbed", "tamil", "telugu", "hindi", "english", "download", "file", 
@@ -144,7 +144,7 @@ async def auto_search_and_reply(update: Update, context: ContextTypes.DEFAULT_TY
         "stop", "start", "restart", "update", "new", "old", "latest", "upcoming",
         "hi", "hello", "hey", "gm", "gn", "good morning", "good night", "how are you", 
         "fine", "thanks", "thank you", "ok", "okay", "bye", "see you", "sup", 
-        "what's up", "bro", "sis", "friend", "friends", "admin", "owner", "founder", 
+        "what's up", "sis", "friend", "friends", "owner", "founder", 
         "help", "support", "issue", "problem", "bug", "chat", "talk", "speak", 
         "message", "text", "voice", "audio", "photo", "image", "sticker", "gif", 
         "emoji", "laugh", "lol", "haha", "omg", "wow", "nice", "good", "bad", 
@@ -153,33 +153,49 @@ async def auto_search_and_reply(update: Update, context: ContextTypes.DEFAULT_TY
         "really", "actually", "seriously", "just", "only", "some", "any", "all", 
         "none", "more", "less", "much", "many", "few", "other", "another", "same", 
         "different", "such", "own", "each", "every", "both", "either", "neither", 
-        "own", "local", "global", "world", "universe", "uosg", "drama", "kdrama", 
-        "cdrama", "jdrama", "anime", "toon", "cartoon", "episode 1", "episode 2", 
-        "part 1", "part 2", "season 1", "season 2", "volume", "chapter", "iss", 
-        "issue", "request", "demands", "ask", "asking", "asked", "reply", "replied", 
+        "local", "global", "world", "universe", "uosg", "drama", "kdrama", 
+        "cdrama", "jdrama", "anime", "toon", "cartoon", "volume", "chapter", 
+        "request", "demands", "ask", "asking", "asked", "reply", "replied", 
         "comment", "comments", "post", "posts", "upload", "uploaded", "forward", 
         "forwarded", "pin", "pinned", "unpin", "delete", "deleted", "remove", 
-        "removed", "ban", "banned", "kick", "kicked", "mute", "muted", "unmute"
+        "removed", "ban", "banned", "kick", "kicked", "mute", "muted", "unmute",
+        "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", 
+        "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", 
+        "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", 
+        "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", 
+        "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", 
+        "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", 
+        "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", 
+        "against", "between", "into", "through", "during", "before", "after", "above", 
+        "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", 
+        "again", "further", "then", "once", "panunga"
     ]
 
-    for word in restricted_words:
-        # வார்த்தை அல்லது வாக்கியத்தில் தடை செய்யப்பட்ட சொற்கள் இருந்தால் கூகுள் தேடலைத் தவிர்க்கவும்
-        if word in text_lower:
-            return
+    words = text.split()
+    filtered_words = [w for w in words if w.lower() not in restricted_words]
 
-    # உண்மையான டிராமா பெயர்கள் மட்டும் வந்தாலl மட்டுமே கீழே உள்ள கூகுள் தேடல் மற்றும் Zara பாட்டின் பதில் வேலை செய்யும்
-    query_raw = text
-    encoded_query = urllib.parse.quote(query_raw)
+    if not filtered_words:
+        return
+
+    drama_query = " ".join(filtered_words)
+    encoded_query = urllib.parse.quote(drama_query)
     google_search_url = f"https://www.google.com/search?q={encoded_query}"
 
     zara_response = (
-        f"💖 **Heyy!** All official details and available languages for `{query_raw.title()}` can be checked on Google!\n\n"
-        f"🔍 Please click the **Go to Google Search** link below to check all the details:\n\n"
-        f"👉 [Go to Google Search 🌐]({google_search_url})\n\n"
+        f"💖 **Heyy!** All official details and available languages for `{drama_query.title()}` can be checked on Google!\n\n"
         f"✨ Our **UOSG Group CEO and Founders** will review this, and our admins will send you the drama files very soon! Please wait patiently until then! 🥰"
     )
     
-    await update.message.reply_text(zara_response, parse_mode="Markdown", reply_to_message_id=update.message.message_id)
+    # அழகிய இன்லைன் பட்டன் அமைப்பு (Inline Keyboard Button)
+    keyboard = [[InlineKeyboardButton("🔍 Go to Google Search", url=google_search_url)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(
+        zara_response, 
+        parse_mode="Markdown", 
+        reply_markup=reply_markup, 
+        reply_to_message_id=update.message.message_id
+    )
 
 def setup_webhook():
     import requests
