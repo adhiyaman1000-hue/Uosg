@@ -101,7 +101,7 @@ async def filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     chat_id = str(chat.id)
-    if chat_id str(chat.id) not in CHAT_FILTERS:
+    if chat_id not in CHAT_FILTERS:
         CHAT_FILTERS[chat_id] = {}
         
     CHAT_FILTERS[chat_id][keyword] = reply_msg
@@ -130,7 +130,6 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
     query_raw = " ".join(context.args).strip()
     query_lower = query_raw.lower()
     
-    # கூகுள் ஏ.ஐ பாணியில் துல்லியமான 3 குறிப்புகளைத் தரும் வடிவம்
     drama_name = query_raw.title()
     release_year = "2023"
     
@@ -156,11 +155,10 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
         release_year = "2017"
 
     if "chinese" in query_lower or "china" in query_lower or "mandarin" in query_lower or "when i fly" in query_lower or "love o2o" in query_lower:
-        languages = "Mandarin (Original), English / Tamil (Dubbed/Subbed)"
+        languages = "Mandarin (Original), English / Tamil (Subbed/Dubbed)"
     else:
-        languages = "Korean (Original), English / Tamil (Dubbed/Subbed)"
+        languages = "Korean (Original), English / Tamil (Subbed/Dubbed)"
 
-    # கூகுள் ஏ.ஐ ஸ்டைல் சுருக்கமான 3 பாயிண்ட் அவுட்லைன்
     ai_response = (
         f"🤖 **Google AI Summary:**\n\n"
         f"1️⃣ **Drama Name:** {drama_name}\n"
