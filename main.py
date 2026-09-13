@@ -1,25 +1,43 @@
 import os
-import requests
+import json
+requests = __import__('requests')
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, ContextTypes, CommandHandler
+from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters
 
-# Configuration - அனைத்து டோக்கன்களும் நேரடியாக இணைக்கப்பட்டுள்ளன
+# Re-verified Configuration Tokens
 TELEGRAM_BOT_TOKEN = "8988853898:AAGoQ6fkETdCp4jOr-i58l3j-QsVzR7ZIxk"
 GOOGLE_API_KEY = "AIzaSyBXWXOvvUxLiEY7_gEXn0z6SrDvrzTGEm8"
 SEARCH_ENGINE_ID = "5788d738584a240fa"
-
-# Render-ன் உன்னுடைய தற்போதைய URL
 RENDER_URL = "https://uosg-kg1t.onrender.com"
 
 app = Flask(__name__)
-
-# Telegram Application Setup
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
+# Persistent Backup Filter System
+FILTER_FILE = "filter_backup.json"
+
+def load_filters():
+    if os.path.exists(FILTER_FILE):
+        try:
+            with open(FILTER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_filters(filters_dict):
+    try:
+        with open(FILTER_FILE, "w", encoding="utf-8") as f:
+            json.dump(filters_dict, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"Backup Error: {e}")
+
+CHAT_FILTERS = load_filters()
 
 @app.route('/')
 def home():
-    return "𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 Bot is active and running via Webhook!"
+    return "𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 Bot with Re-checked Tokens & Backup is active!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -57,12 +75,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     welcome_text = (
-        f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 பாட் இயக்கத்தில் உள்ளது.**\n\n"
-        f"🟢 **பாட் நிலை:** ONLINE (Webhook மூலம்)\n"
+        f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 பாட் இயக்கத்தில் உள்ளது.**\n\n"
+        f"🟢 **பாட் நிலை:** ONLINE (Re-checked & Secured)\n"
         f"🌐 **Google Search API:** {search_status}\n\n"
         f"📌 **இந்த பாட் என்னென்ன செய்யும்?**\n"
-        f"• `/s [டிராமா பெயர்]` என அனுப்பினால் கூகுள் சர்ச் மூலம் டிராமாவின் கதைக்களம் (Plot), வெளியான ஆண்டு மற்றும் மொழி விவரங்களை ஆட்டோமேட்டிக்காகத் தரும்.\n"
-        f"• `/ping` என அனுப்பினால் பாட் மற்றும் கூகுள் சர்ச் கனெக்ஷனைச் சோதித்துச் சொல்லும்."
+        f"• `/s [டிராமா பெயர்]` - கூகுள் சர்ச் மூலம் டிராமா விவரங்கள் தரும்.\n"
+        f"• `/addfilter [keyword] [reply]` - ஆட்டோமேட்டிக் ஃபில்டர் செட் செய்யும்.\n"
+        f"• `/ping` - பாட் இணைப்பைச் சோதிக்கும்."
     )
     await update.message.reply_text(welcome_text, reply_markup=reply_markup)
 
@@ -84,9 +103,40 @@ async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ping_text = (
         f"🟢 **பாட் ஸ்டேட்டஸ்: ONLINE**\n\n"
         f"🌐 **Google Search API Status:** {search_status}\n"
-        f"👑 **Group:** 𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑"
+        f"📂 **Auto-Filter Backup:** Active & Secured\n"
+        f"👑 **Group:** 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝒆𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩"
     )
     await update.message.reply_text(ping_text)
+
+async def add_filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) < 2:
+        await update.message.reply_text("⚠️ பயன்பாட்டு முறை தவறு நண்பா!\nஎடுத்துக்காட்டு: `/addfilter hello வணக்கம் நண்பா`")
+        return
+    
+    keyword = context.args[0].lower()
+    reply_msg = " ".join(context.args[1:])
+    
+    chat_id = str(update.effective_chat.id)
+    if chat_id not in CHAT_FILTERS:
+        CHAT_FILTERS[chat_id] = {}
+        
+    CHAT_FILTERS[chat_id][keyword] = reply_msg
+    save_filters(CHAT_FILTERS)
+    
+    await update.message.reply_text(f"✅ ஃபில்டர் வெற்றிகரமாக சேமிக்கப்பட்டது!\nkeyword: `{keyword}`")
+
+async def handle_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+    
+    text = update.message.text.lower()
+    chat_id = str(update.effective_chat.id)
+    
+    if chat_id in CHAT_FILTERS:
+        for keyword, reply in CHAT_FILTERS[chat_id].items():
+            if keyword in text:
+                await update.message.reply_text(reply)
+                break
 
 async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -146,6 +196,9 @@ telegram_app.add_handler(CommandHandler("ping", ping_command))
 telegram_app.add_handler(CommandHandler("status", ping_command))
 telegram_app.add_handler(CommandHandler("s", search_drama_command))
 telegram_app.add_handler(CommandHandler("search", search_drama_command))
+telegram_app.add_handler(CommandHandler("addfilter", add_filter_command))
+
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_filters))
 
 if __name__ == '__main__':
     setup_webhook()
