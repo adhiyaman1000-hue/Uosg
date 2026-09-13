@@ -33,7 +33,7 @@ CHAT_FILTERS = load_filters()
 
 @app.route('/')
 def home():
-    return "𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 AI Bot is running perfectly!"
+    return "𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝐞𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 Bot is running perfectly!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -50,34 +50,40 @@ def webhook():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = (
-        f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝒆𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 AI Bot இயக்கத்தில் உள்ளது.**\n\n"
-        f"🟢 **பாட் நிலை:** ONLINE & AI MODE READY\n\n"
+        f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝒆𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩 பாட் இயக்கத்தில் உள்ளது.**\n\n"
+        f"🛡️ **பாதுகாப்பு:** Admin-Only Filter Lock Active\n\n"
         f"📌 **பயன்படுத்தும் முறை:**\n"
-        f"• ஒரே வார்த்தை ஃபில்டர்: `/filter hi - வணக்கம்`\n"
-        f"• பல வார்த்தை ஃபில்டர்: `/filter \"good morning\" - இனிய காலை வணக்கம்`\n"
-        f"• `/s [டிராமா பெயர்]` - உலகளாவிய தேடல் மற்றும் AI மோட் சுருக்கம் பெற.\n"
+        f"• `/filter வார்த்தை - பதில்` (அட்மின்கள் மட்டும்)\n"
+        f"• `/s [டிராமா பெயர்]` - ஆண்டு, மொழி மற்றும் கூகுள் லிங்க் பெற\n"
         f"• `/ping` - பாட் நிலையைச் சோதிக்க."
     )
     await update.message.reply_text(welcome_text)
 
 async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ping_text = (
-        f"🟢 **பாட் ஸ்டேட்டஸ்: ONLINE (AI Mode Active)**\n"
+        f"🟢 **பாட் ஸ்டேட்டஸ்: ONLINE (Connected & Safe)**\n"
         f"📂 **Auto-Filter Backup:** Active & Safe\n"
         f"👑 **Group:** 𝑻𝒉𝒆 𝐔𝐧𝐢𝐯𝒆𝐫𝐬𝐞 𝐨𝐟 𝐒𝐞𝐫𝐢𝐞𝐬 𝐆𝐫𝐨𝐮𝐩"
     )
     await update.message.reply_text(ping_text)
 
 async def filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    full_text = " ".join(context.args)
+    user_id = update.effective_user.id
+    chat = update.effective_chat
     
+    if chat.type != "private":
+        try:
+            member = await chat.get_member(user_id)
+            if member.status not in ["creator", "administrator"]:
+                await update.message.reply_text("⚠️ மன்னிக்கவும் நண்பா! இந்த `/filter` கமாண்டை குரூப் அட்மின்கள் மட்டுமே பயன்படுத்த முடியும் (Admin Lock Active).")
+                return
+        except Exception as e:
+            print(f"Admin Check Error: {e}")
+            return
+
+    full_text = " ".join(context.args)
     if "-" not in full_text:
-        await update.message.reply_text(
-            "⚠️ முறை தவறு நண்பா!\n"
-            "சரியான வடிவம்:\n"
-            "• `/filter வார்த்தை - பதில்`\n"
-            "• `/filter \"பல வார்த்தைகள்\" - பதில்`"
-        )
+        await update.message.reply_text("⚠️ முறை தவறு நண்பா! எ.கா: `/filter hi - வணக்கம்` அல்லது `/filter \"good morning\" - பதில்`")
         return
     
     parts = full_text.split("-", 1)
@@ -93,14 +99,14 @@ async def filter_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ வார்த்தை அல்லது பதில் காலியாக இருக்கக்கூடாது நண்பா!")
         return
 
-    chat_id = str(update.effective_chat.id)
+    chat_id = str(chat.id)
     if chat_id not in CHAT_FILTERS:
         CHAT_FILTERS[chat_id] = {}
         
     CHAT_FILTERS[chat_id][keyword] = reply_msg
     save_filters(CHAT_FILTERS)
     
-    await update.message.reply_text(f"✅ ஃபில்டர் வெற்றிகரமாக சேமிக்கப்பட்டது!\n📌 **கீவர்டு:** `{keyword}`\n💬 **பதில்:** `{reply_msg}`")
+    await update.message.reply_text(f"🔒 **[Admin Lock]** ஃபில்டர் வெற்றிகரமாகச் சேமிக்கப்பட்டது!\n📌 **கீவர்டு:** `{keyword}` ➔ `{reply_msg}`")
 
 async def handle_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -121,54 +127,19 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     query = " ".join(context.args)
-    await update.message.reply_text(f"🤖 **AI Mode:** உலகளாவிய வலையில் இருந்து '{query}' பற்றிய விவரங்களைத் தேடுகிறது நண்பா...")
+    
+    # முன்பைப்போலவே மிகத் துல்லியமான நேரடி கூகுள் தேடல் லிங்க் உருவாக்கம்
+    main_google_url = f"https://www.google.com/search?q={query.replace(' ', '+')}+drama+release+year+languages+Tamil+dubbed"
+    keyboard = [[InlineKeyboardButton("🌍 மெயின் கூகுளில் முழு விவரம் காண", url=main_google_url)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-    try:
-        # உலகளாவிய தேடலுக்கான API (DuckDuckGo Instant Answer / Search API)
-        search_api_url = f"https://api.duckduckgo.com/?q={query}+drama+Tamil+dubbed&format=json&no_html=1&skip_disambig=1"
-        res = requests.get(search_api_url, timeout=10).json()
-        
-        abstract = res.get("AbstractText", "")
-        abstract_url = res.get("FirstURL", "")
-        
-        if not abstract:
-            # Related topics-ல் இருந்து தகவல் தேடுதல்
-            related = res.get("RelatedTopics", [])
-            for topic in related:
-                if "Text" in topic:
-                    abstract = topic["Text"]
-                    abstract_url = topic.get("FirstURL", "")
-                    break
-                    
-        if abstract:
-            main_google_url = f"https://www.google.com/search?q={query.replace(' ', '+')}+drama+Tamil+dubbed"
-            keyboard = [
-                [InlineKeyboardButton("🔗 முழு மூலத் தகவல் (Source)", url=abstract_url)],
-                [InlineKeyboardButton("🌍 மெயின் கூகுளில் மேலும் தேட", url=main_google_url)]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            ai_response = (
-                f"✨ **AI Mode Overview: {query}**\n\n"
-                f"📖 {abstract}\n\n"
-                f"💡 *இது உலகளாவிய வலையிலிருந்து AI மூலம் தொகுக்கப்பட்ட சுருக்கமாகும் நண்பா!*"
-            )
-            await update.message.reply_text(ai_response, reply_markup=reply_markup)
-        else:
-            # ஒருவேளை சுருக்கம் கிடைக்கவில்லை என்றால் நேரடி கூகுள் சர்ச் ரிசல்ட் காட்டுவது
-            main_google_url = f"https://www.google.com/search?q={query.replace(' ', '+')}+drama+Tamil+dubbed"
-            keyboard = [[InlineKeyboardButton("🌍 மெயின் கூகுளில் நேரடியாகத் தேட", url=main_google_url)]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await update.message.reply_text(
-                f"⚠️ '{query}' பற்றிய நேரடி AI சுருக்கம் கிடைக்கவில்லை நண்பா. கீழே உள்ள மெயின் கூகுள் சர்ச் பட்டனைப் பயன்படுத்தவும்:",
-                reply_markup=reply_markup
-            )
-    except Exception as e:
-        main_google_url = f"https://www.google.com/search?q={query.replace(' ', '+')}+drama+Tamil+dubbed"
-        keyboard = [[InlineKeyboardButton("🌍 மெயின் கூகுளில் தேட", url=main_google_url)]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text("⚠️ தேடுவதில் சிறு தொழில்நுட்பத் தடை ஏற்பட்டுள்ளது நண்பா. கூகுள் லிங்க் இதோ:", reply_markup=reply_markup)
+    response_text = (
+        f"🎬 **டிராமா பெயர்:** {query.title()}\n\n"
+        f"📅 **வெளியான ஆண்டு & மொழிகள்:**\n"
+        f"• இந்தத் டிராமாவின் அதிகாரப்பூர்வ **வெளியீட்டு ஆண்டு**, **இயக்குநர்/நடிப்பாட்டாளர்கள்** மற்றும் **தமிழ் (Tamil) / ஒரிஜினல் மொழிகள்** பற்றிய முழுமையான தகவல்களைத் தெரிந்து கொள்ள கீழே உள்ள கூகுள் லிங்க்கை அழுத்தவும் நண்பா!\n\n"
+        f"🔗 *நேரடி மற்றும் வேகமான இணைப்பு உருவாக்கப்பட்டுள்ளது.*"
+    )
+    await update.message.reply_text(response_text, reply_markup=reply_markup)
 
 def setup_webhook():
     webhook_url = f"{RENDER_URL}/{TELEGRAM_BOT_TOKEN}"
