@@ -1,4 +1,5 @@
 import os
+import threading
 import requests
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -16,24 +17,68 @@ def home():
     return "𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 Bot is active and running!"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Check Google Custom Search API connectivity live on /start
+    search_status = "❌ துண்டிக்கப்பட்டுள்ளது"
+    try:
+        test_res = requests.get("https://www.googleapis.com/customsearch/v1", params={
+            'key': GOOGLE_API_KEY,
+            'cx': SEARCH_ENGINE_ID,
+            'q': 'test'
+        }, timeout=5)
+        if test_res.status_code == 200:
+            search_status = "✅ Connected in Google Search (வெற்றிகரமாக இணைக்கப்பட்டுள்ளது)"
+        else:
+            search_status = f"⚠️ சிக்கல் உள்ளது (Error Code: {test_res.status_code})"
+    except Exception:
+        search_status = "❌ இணைப்பு கிடைக்கவில்லை"
+
     keyboard = [
         [InlineKeyboardButton("🔍 டிராமா தேட (/s)", callback_data="help_search")],
+        [InlineKeyboardButton("📶 பாட் ஸ்டேட்டஸ் பரிசோதிக்க (/ping)", callback_data="check_status")],
         [InlineKeyboardButton("💎 𝓚𝓒 𝔁 𝒟𝓇𝒶𝓂𝒶 𝒲ℴ𝓇𝓁𝒹", url="https://t.me/KC_X_DRAMA_WORLD")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "வணக்கம் நண்பா! 𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 பாட் தயார் நிலையிலுள்ளது.\n"
-        "`/s [டிராமா பெயர்]` என அனுப்பி அதன் கதைக்களம், ஆண்டு மற்றும் மொழி விவரங்களைப் பெற்றுக்கொள்ளலாம்.",
-        reply_markup=reply_markup
+
+    welcome_text = (
+        f"🌟 **வணக்கம் நண்பா! 𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑 பாட் இயக்கத்தில் உள்ளது.**\n\n"
+        f"🟢 **பாட் நிலை:** ONLINE (செயலில் உள்ளது)\n"
+        f"🌐 **Google Search API:** {search_status}\n\n"
+        f"📌 **இந்த பாட் என்னென்ன செய்யும்?**\n"
+        f"• `/s [டிராமா பெயர்]` என அனுப்பினால் கூகுள் சர்ச் மூலம் டிராமாவின் கதைக்களம் (Plot), வெளியான ஆண்டு மற்றும் மொழி விவரங்களை (Tamil Dubbed Available / Not Available) ஆட்டோமேட்டிக்காகக் கொண்டு এসে இன்லைன் பட்டன்களுடன் தரும்.\n"
+        f"• `/ping` என அனுப்பினால் பாட் மற்றும் கூகுள் சர்ச் லைவ் கனெக்ஷனைச் சோதித்துச் சொல்லும்.\n\n"
+        f"உன்னுடைய சேவையைத் தொடங்க கீழே உள்ள கமெண்டைப் பயன்படுத்தவும் நண்பா!"
     )
+    await update.message.reply_text(welcome_text, reply_markup=reply_markup)
+
+async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    search_status = "❌ துண்டிக்கப்பட்டுள்ளது"
+    try:
+        test_res = requests.get("https://www.googleapis.com/customsearch/v1", params={
+            'key': GOOGLE_API_KEY,
+            'cx': SEARCH_ENGINE_ID,
+            'q': 'test'
+        }, timeout=5)
+        if test_res.status_code == 200:
+            search_status = "✅ Connected in Google Search"
+        else:
+            search_status = f"⚠️ Error Code: {test_res.status_code}"
+    except Exception:
+        search_status = "❌ இணைப்பு கிடைக்கவில்லை"
+
+    ping_text = (
+        f"🟢 **பாட் ஸ்டேட்டஸ்: ONLINE**\n\n"
+        f"🌐 **Google Search API Status:** {search_status}\n"
+        f"👑 **Group:** 𝑻𝒉𝒆 𝑼𝒏𝒊𝒗𝒆𝒓𝒔𝒆 𝒐𝒇 𝑺𝒆𝒓𝒊𝒆𝒔 𝑮𝒓𝒐𝒖𝒑"
+    )
+    await update.message.reply_text(ping_text)
 
 async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ நண்பா, கமெண்டுடன் டிராமாவின் பெயரையும் சேர்த்து அனுப்பவும்.\nஎடுத்துக்காட்டு: `/s Twinkling Watermelon`")
+        await update.message.reply_text("⚠️ நண்பா, டிராமாவின் பெயரையும் சேர்த்து அனுப்பவும்.\nஎடுத்துக்காட்டு: `/s Twinkling Watermelon`")
         return
 
     query = " ".join(context.args)
-    await update.message.reply_text(f"🔍 '{query}' டிராமாவின் முழு விவரங்களையும் (Plot, Year, Languages) கூகுள் மூலம் தேடிக்கொண்டிருக்கிறேன் நண்பா...")
+    await update.message.reply_text(f"🔍 '{query}' டிராமாவின் முழு விவரங்களையும் கூகுள் சர்ச் மூலம் தேடிக்கொண்டிருக்கிறேன் நண்பா...")
 
     search_url = "https://www.googleapis.com/customsearch/v1"
     params = {
@@ -52,7 +97,6 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
             snippet = top_result.get('snippet', '')
             link = top_result.get('link', '')
             
-            # Interactive Buttons
             keyboard = [
                 [InlineKeyboardButton("🔗 முழு விவரங்களைப் பார்க்க", url=link)],
                 [InlineKeyboardButton("👑 CEO Bot Approval", callback_data=f"approve_{query[:15]}")]
@@ -60,23 +104,24 @@ async def search_drama_command(update: Update, context: ContextTypes.DEFAULT_TYP
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             reply_text = (
+                f"✅ **Connected in Google Search: SUCCESS**\n\n"
                 f"🎬 **டிராமா தகவல் அறிக்கை**\n\n"
                 f"📌 **தலைப்பு & ஆண்டு:** {title}\n\n"
                 f"📖 **கதைக்களம் & விவரங்கள் (Plot):**\n{snippet}\n\n"
-                f"🌐 **மொழி நிலை:** தமிழ் / பிற மொழிகளில் இணையத்தில் தேடப்பட்டுள்ளது."
+                f"🌐 **மொழி நிலை:** தமிழ் டப்பிங் / பிற விவரங்கள் இணையத்தில் தேடப்பட்டுள்ளது."
             )
             await update.message.reply_text(reply_text, reply_markup=reply_markup)
         else:
             reply_text = (
-                f"❌ **ஸ்டேட்டஸ்: NOT AVAILABLE**\n\n"
+                f"⚠️ **Google Search Connected, ஆனால் தகவல் இல்லை**\n\n"
                 f"மன்னிக்கவும் நண்பா, '{query}' டிராமா பற்றிய தகவல்கள் வெப்பில் கிடைக்கவில்லை."
             )
             await update.message.reply_text(reply_text)
             
     except Exception as e:
-        await update.message.reply_text("⚠️ தேடுவதில் சிறு தொழில்நுட்பத் தடை ஏற்பட்டுள்ளது நண்பா. சற்று கழித்து முயற்சிக்கவும்.")
+        await update.message.reply_text("⚠️ கூகுள் சர்ச்சுடன் இணைப்பதில் சிறு தடை ஏற்பட்டுள்ளது நண்பா. சற்று கழித்து முயற்சிக்கவும்.")
 
-def main():
+def run_telegram_bot():
     if not TELEGRAM_BOT_TOKEN:
         print("Telegram Token missing!")
         return
@@ -84,11 +129,16 @@ def main():
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("ping", ping_command))
+    application.add_handler(CommandHandler("status", ping_command))
     application.add_handler(CommandHandler("s", search_drama_command))
     application.add_handler(CommandHandler("search", search_drama_command))
 
     application.run_polling()
 
 if __name__ == '__main__':
+    bot_thread = threading.Thread(target=run_telegram_bot)
+    bot_thread.start()
+
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
