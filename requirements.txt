@@ -1,5 +1,5 @@
-python-telegram-bot
-requests
-flask
+python-telegram-bot==20.7
+flask==3.0.2
+requests==2.31.0
 
 
